@@ -1,0 +1,45 @@
+const express = require("express");
+const router = express.Router();
+
+const authRoutes = require("./authRoutes");
+const employeeRoutes = require("./employeeRoutes");
+const departmentRoutes = require("./departmentRoutes");
+const levelRoutes = require("./levelRoutes");
+const roleRoutes = require("./roleRoutes");
+const workLocationRoutes = require("./workLocationRoutes");
+const designationRoutes = require("./designationRoutes");
+const salarySlabRoutes = require("./salarySlabRoutes");
+const leaveSettingRoutes = require("./leaveSettingRoutes");
+const holidaySettingRoutes = require("./holidaySettingRoutes");
+const expenseLimitRoutes = require("./expenseLimitRoutes");
+const leaveRoutes = require("./leaveRoutes");
+const expenseClaimRoutes = require("./expenseClaimRoutes");
+const setTimeRoutes = require("./setTimeRoutes");
+const attendanceRoutes = require("./attendanceRoutes");
+const userPermissionRoutes = require("./userPermissionRoutes");
+const payrollRoutes = require("./payrollRoutes");
+const educationRoutes = require("./educationRoutes");
+const experienceRoutes = require("./experienceRoutes");
+
+router.use("/test", (req, res) => res.send("<h1>This is a test API_26062025</h1>"));
+router.use("/api/auth", authRoutes);
+router.use("/api/employees", employeeRoutes);
+router.use("/api/department", departmentRoutes);
+router.use("/api/level", levelRoutes);
+router.use("/api/role", roleRoutes);
+router.use("/api/workLocation", workLocationRoutes);
+router.use("/api/designation", designationRoutes);
+router.use("/api/salarySlab", salarySlabRoutes);
+router.use("/api/leaveSetting", leaveSettingRoutes);
+router.use("/api/holidaySetting", holidaySettingRoutes);
+router.use("/api/expenseLimit", expenseLimitRoutes);
+router.use("/api/leaves", leaveRoutes);
+router.use("/api/expenseClaim", expenseClaimRoutes);
+router.use("/api/setTime", setTimeRoutes);
+router.use("/api/attendance", attendanceRoutes);
+router.use("/api/user-permissions", userPermissionRoutes);
+router.use("/api/payrolls", payrollRoutes);
+router.use("/api/education", educationRoutes);
+router.use("/api/experience", experienceRoutes);
+
+module.exports = router;
