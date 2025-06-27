@@ -18,12 +18,12 @@ exports.login = async ({ officialEmail, password }) => {
     });
 
     if (!user) {
-      throw new Error("Invalid mobile number or password.");
+      throw new Error("Invalid email id or password.");
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      throw new Error("Invalid mobile number or password.");
+      throw new Error("Invalid email id or password.");
     }
 
     let payload = { id: user.id, role: user.role };
