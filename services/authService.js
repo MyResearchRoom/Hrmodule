@@ -10,6 +10,8 @@ const { getUserPermissions } = require("./userPermissionService");
 
 exports.login = async ({ officialEmail, password }) => {
   try {
+    // console.log("officialEmail",officialEmail);
+    
     const user = await User.findOne({
       where: {
         officialEmail,

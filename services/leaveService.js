@@ -25,6 +25,8 @@ exports.leaveRequest = async ({
   const transaction = await sequelize.transaction();
   try {
     // Step 1: Calculate working days per year
+    console.log("fromDate",fromDate);
+    console.log("toDate",toDate);
     const allYears = new Set();
     const current = new Date(fromDate);
     const end = new Date(toDate);
@@ -95,6 +97,8 @@ exports.leaveRequest = async ({
       (a, b) => a + b,
       0
     );
+    console.log("totalDaysRequested",totalDaysRequested);
+    
     const leaveRequest = await LeaveApplication.create(
       {
         employeeId,
@@ -338,6 +342,7 @@ exports.getLeaves = async ({
         "leaveTypeId",
         "type",
         "reason",
+        "rejectionReason",
         "createdAt",
       ],
       include: [
@@ -363,6 +368,7 @@ exports.getLeaves = async ({
       fromDate: new Date(leave.fromDate).toLocaleDateString(),
       toDate: new Date(leave.toDate).toLocaleDateString(),
       reason: leave.reason,
+      rejectionReason:leave.rejectionReason,
       totalDays: leave.daysRequested,
       requestedOn: new Date(leave.createdAt).toLocaleDateString(),
       status: leave.status,

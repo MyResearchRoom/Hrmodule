@@ -9,7 +9,10 @@ const {
   getStats,
   updateEmployee,
   getUserInfo,
+  employeeCredentialRegistration,
 } = require("../services/employeeService");
+
+const { Employee ,User,Education, Experience,EmployeeSalaryStructure,sequelize} =require("../models");
 const { getSalarySlab } = require("../services/salarySlabService");
 const { validateQueryParams } = require("../utils/validateQueryParams");
 
@@ -39,6 +42,33 @@ exports.hrManagerRegistration = async (req, res) => {
   }
 };
 
+exports.employeeCredentialRegistration = async (req, res) => {
+  try {
+    const { name, officialEmail, mobileNumber, password,role } = req.body;
+    const user = await employeeCredentialRegistration({
+      name,
+      officialEmail,
+      mobileNumber,
+      password,
+      profilePicture: req.files.profilePicture
+        ? `data:${
+            req.files.profilePicture[0].mimetype
+          };base64,${req.files.profilePicture[0].buffer.toString("base64")}`
+        : null,
+      role,
+    });
+    res.status(201).json({
+      message: "Employee Registered Successfully",
+      data: user,
+      success: true,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: error.message || "Employee registration failed", success: false });
+  }
+};
+
 exports.employeeRegistration = async (req, res) => {
   try {
     const {
@@ -51,6 +81,7 @@ exports.employeeRegistration = async (req, res) => {
       relivingLetter,
     } = req.files;
 
+    //admin
     const salarySlab = await getSalarySlab(req.body.roleId, req.body.levelId);
     if (!salarySlab) {
       return res
@@ -91,59 +122,317 @@ exports.employeeRegistration = async (req, res) => {
   }
 };
 
-exports.updateEmployee = async (req, res) => {
-  try {
-    const { aadharDoc, panDoc, profilePicture, passbookDoc, relivingLetter } =
-      req.files;
+// exports.updateEmployee = async (req, res) => {
+//   try {
+//     const { aadharDoc, panDoc, profilePicture, passbookDoc, relivingLetter } =
+//       req.files;
 
-    const salarySlab = await getSalarySlab(req.body.roleId, req.body.levelId);
+//     const salarySlab = await getSalarySlab(req.body.roleId, req.body.levelId);
+//     if (!salarySlab) {
+//       return res
+//         .status(404)
+//         .json({ message: "Invalid role or level", success: false });
+//     }
+//     const data = await updateEmployee({
+//       ...req.body,
+//       employeeId: req.params.employeeId,
+//       salarySlabId: salarySlab.id,
+//       aadharDoc:
+//         aadharDoc?.length > 0
+//           ? `data:${
+//               aadharDoc[0].mimetype
+//             };base64,${aadharDoc[0].buffer.toString("base64")}`
+//           : null,
+//       panDoc:
+//         panDoc?.length > 0
+//           ? `data:${panDoc[0].mimetype};base64,${panDoc[0].buffer.toString(
+//               "base64"
+//             )}`
+//           : null,
+//       profilePicture:
+//         profilePicture?.length > 0
+//           ? `data:${
+//               profilePicture[0].mimetype
+//             };base64,${profilePicture[0].buffer.toString("base64")}`
+//           : null,
+//       passbookDoc:
+//         passbookDoc?.length > 0
+//           ? `data:${
+//               passbookDoc[0].mimetype
+//             };base64,${passbookDoc[0].buffer.toString("base64")}`
+//           : null,
+//       relivingLetter:
+//         relivingLetter?.length > 0
+//           ? `data:${
+//               relivingLetter[0].mimetype
+//             };base64,${relivingLetter[0].buffer.toString("base64")}`
+//           : null,
+//     });
+
+//     res.status(200).json({
+//       message: "Employee updated Successfully",
+//       data,
+//       success: true,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message, success: false });
+//   }
+// };
+exports.updateEmployee = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const {
+      gender,
+      name,
+      dateOfBirth,
+      email,
+      mobileNumber,
+      uanNumber,
+      aadharNumber,
+      panNumber,
+      presentAddress,
+      permanentAddress,
+      presentCountry,
+      permanentCountry,
+      presentState,
+      permanentState,
+      presentPostalCode,
+      permanentPostalCode,
+      totalExperience,
+      lastWorkLocation,
+      lastCompanyName,
+      lastCtc,
+      additionalInfo,
+      experience,
+      education,
+      accountHolderName,
+      accountNumber,
+      bankName,
+      branchName,
+      ifscCode,
+      upiId,
+      roleId,
+      levelId,
+      officialEmail,
+      joiningDate,
+      departmentId,
+      designationId,
+      workLocationId,
+      employeeType,
+      assignSalaryStructure,
+      payrollEligibility,
+      salarySlabId,
+      ctc,
+      paymentMethod,
+      structure,
+    } = req.body;
+
+    // console.log("Frontend data",req.body);
+
+    const {employeeId} = req.params;
+
+    const eduParsed = education ? JSON.parse(education) : [];
+    const expParsed = experience ? JSON.parse(experience) : [];
+
+    const getFileBuffer = (fileArr) =>
+      fileArr && fileArr.length > 0 ? fileArr[0].buffer : null;
+
+    const salarySlab = await getSalarySlab(roleId,levelId);
     if (!salarySlab) {
       return res
         .status(404)
         .json({ message: "Invalid role or level", success: false });
     }
-    const data = await updateEmployee({
-      ...req.body,
-      employeeId: req.params.employeeId,
-      salarySlabId: salarySlab.id,
-      aadharDoc:
-        aadharDoc?.length > 0
-          ? `data:${
-              aadharDoc[0].mimetype
-            };base64,${aadharDoc[0].buffer.toString("base64")}`
-          : null,
-      panDoc:
-        panDoc?.length > 0
-          ? `data:${panDoc[0].mimetype};base64,${panDoc[0].buffer.toString(
-              "base64"
-            )}`
-          : null,
-      profilePicture:
-        profilePicture?.length > 0
-          ? `data:${
-              profilePicture[0].mimetype
-            };base64,${profilePicture[0].buffer.toString("base64")}`
-          : null,
-      passbookDoc:
-        passbookDoc?.length > 0
-          ? `data:${
-              passbookDoc[0].mimetype
-            };base64,${passbookDoc[0].buffer.toString("base64")}`
-          : null,
-      relivingLetter:
-        relivingLetter?.length > 0
-          ? `data:${
-              relivingLetter[0].mimetype
-            };base64,${relivingLetter[0].buffer.toString("base64")}`
-          : null,
+
+    const employee = await Employee.findOne({
+      where: {
+        userId: employeeId,
+      },
+      transaction,
+    });
+    if (!employee) {
+      if (transaction) await transaction.rollback();
+      throw new Error("Employee not found");
+    }
+    const user = await User.findOne({
+      where: {
+        id: employee.userId,
+      },
+    });
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (officialEmail && user.officialEmail !== officialEmail) {
+      const existingUser = await User.findOne({
+        where: {
+          officialEmail,
+        },
+        transaction,
+      });
+      if (existingUser) {
+        if (transaction) await transaction.rollback();
+        throw new Error("Email already exists");
+      }
+    }
+    
+    const userUpdationData = {
+      name,
+      officialEmail,
+      mobileNumber,
+    };
+   
+    await user.update(userUpdationData, {
+      transaction,
     });
 
+    const employeeUpdationData = {
+      name,
+      gender,
+      dateOfBirth,
+      officialEmail,
+      email,
+      mobileNumber,
+      uanNumber,
+      aadharNumber,
+      aadharDoc: req.files.aadharDoc.length
+        ? getFileBuffer(req.files.aadharDoc)
+        : employee.aadharDoc,
+      panNumber,
+      panDoc: req.files.panDoc.length
+        ? getFileBuffer(req.files.panDoc)
+        : employee.panDoc,
+      presentAddress,
+      permanentAddress,
+      presentCountry,
+      permanentCountry,
+      presentState,
+      permanentState,
+      presentPostalCode,
+      permanentPostalCode,
+      totalExperience,
+      lastWorkLocation,
+      lastCompanyName,
+      lastCtc,
+      additionalInfo,
+      accountHolderName,
+      accountNumber,
+      bankName,
+      branchName,
+      ifscCode,
+      upiId,
+      passbookDoc: req.files.passbookDoc.length
+        ? getFileBuffer(req.files.passbookDoc)
+        : employee.passbookDoc,
+      relivingLetter: req.files.relivingLetter.length
+        ? getFileBuffer(req.files.relivingLetter)
+        : employee.relivingLetter,
+      joiningDate,
+      departmentId,
+      designationId,
+      workLocationId,
+      employeeType,
+      assignSalaryStructure,
+      payrollEligibility,
+      ctc,
+      paymentMethod,
+      roleId,
+      levelId,
+      salarySlabId,
+      onboardingStatus: "completed"
+    };
+       
+    await employee.update(employeeUpdationData, {
+      transaction,
+    });
+
+    const educationFiles = req.files.education || [];
+
+    if (eduParsed.length > 0) {
+      const educationData = eduParsed.map((item, index) => {
+      const file = educationFiles[index];
+
+      return {
+      ...item,
+      doc: file
+        ? `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+        : null,
+      employeeId: employee.id,
+      };
+      });
+
+      await Education.bulkCreate(educationData, { transaction });
+    }
+
+    const experienceFiles = req.files.experience || [];
+
+    if (expParsed.length > 0) {
+      const experienceData = expParsed.map((item, index) => {
+      const file = experienceFiles[index];
+
+      return {
+      ...item,
+      experienceLetter: file
+        ? `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+        : null,
+      employeeId: employee.id,
+      };
+      });
+      await Experience.bulkCreate(experienceData, { transaction });
+    }
+
+    const latestStructure = await EmployeeSalaryStructure.findOne({
+      where: { employeeId: employee.id },
+      order: [
+        ["effectiveFrom", "DESC"],
+        ["createdAt", "DESC"], 
+      ],
+      transaction,
+    });
+
+    const existingCtc = latestStructure ? Number(latestStructure.ctc) : 0;
+    const newCtc = Number(ctc || 0);
+
+    const incrementPercent = existingCtc
+      ? Math.max(((newCtc - existingCtc) / existingCtc) * 100, 0)
+      : 0;
+
+    if ((structure?.earning || structure?.deduction) && newCtc !== existingCtc){
+    await EmployeeSalaryStructure.create(
+    {
+      employeeId: employee.id,
+      earnings: structure.earning || [],
+      deductions: structure.deduction || [],
+      ctc: newCtc,
+      increament: incrementPercent,
+      effectiveFrom: new Date(),
+    },
+    { transaction }
+    );
+
+    await employee.update(
+      { ctc: newCtc },
+      { transaction }
+    );
+    }
+    
+    await transaction.commit();
+    
     res.status(200).json({
       message: "Employee updated Successfully",
-      data,
+      data: {
+            name: user.name,
+            officialEmail: user.officialEmail,
+            mobileNumber: user.mobileNumber,
+            structure,
+            id: user.id,
+          },
       success: true,
     });
   } catch (error) {
+    if (transaction) await transaction.rollback();
+    console.log(error);
+    
     res.status(500).json({ message: error.message, success: false });
   }
 };
@@ -154,6 +443,7 @@ exports.getEmployee = async (req, res) => {
     const data = await getEmployee({ employeeId });
     res.status(200).json({ success: true, message: "Employee Details", data });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message, success: false });
   }
 };
@@ -164,6 +454,8 @@ exports.getEmployeeById = async (req, res) => {
     const data = await getEmployee({ employeeId });
     res.status(200).json({ success: true, message: "Employee Details", data });
   } catch (error) {
+    console.log(error);
+    
     res.status(500).json({ message: error.message, success: false });
   }
 };
@@ -248,3 +540,250 @@ exports.getUserInfo = async (req, res) => {
     });
   }
 };
+
+exports.empRegistrationByEmp = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const {
+      gender,
+      dateOfBirth,
+      email,
+      uanNumber,
+      aadharNumber,
+      panNumber,
+      presentAddress,
+      permanentAddress,
+      presentCountry,
+      permanentCountry,
+      presentState,
+      permanentState,
+      presentPostalCode,
+      permanentPostalCode,
+      totalExperience,
+      lastWorkLocation,
+      lastCompanyName,
+      lastCtc,
+      additionalInfo,
+      accountHolderName,
+      accountNumber,
+      bankName,
+      branchName,
+      ifscCode,
+      upiId,
+      experience,
+      education,
+    } = req.body;
+
+    // console.log("Frontend data",req.body);
+    
+
+    const eduParsed = education ? JSON.parse(education) : [];
+    const expParsed = experience ? JSON.parse(experience) : [];
+
+    const { 
+      aadharDoc, 
+      panDoc, 
+      passbookDoc, 
+      relivingLetter 
+    } = req.files;
+
+    const getFileBuffer = (file) => (file ? file[0].buffer : null);
+
+  const employeeData = {
+      userId : req.user.id,
+      gender,
+      dateOfBirth,
+      email,
+      uanNumber,
+      aadharNumber,
+      aadharDoc: getFileBuffer(aadharDoc),
+      panNumber,
+      panDoc: getFileBuffer(panDoc),
+      presentAddress,
+      permanentAddress,
+      presentCountry,
+      permanentCountry,
+      presentState,
+      permanentState,
+      presentPostalCode,
+      permanentPostalCode,
+      totalExperience,
+      lastWorkLocation,
+      lastCompanyName,
+      lastCtc,
+      additionalInfo,
+      accountHolderName,
+      accountNumber,
+      bankName,
+      branchName,
+      ifscCode,
+      upiId,
+      passbookDoc: getFileBuffer(passbookDoc),
+      relivingLetter: getFileBuffer(relivingLetter),
+      onboardingStatus: "employee_completed"
+    };
+
+    const employee = await Employee.create(employeeData, { transaction });
+
+    const educationFiles = req.files.education || [];
+
+if (eduParsed.length > 0) {
+  const educationData = eduParsed.map((item, index) => {
+    const file = educationFiles[index];
+
+    return {
+      ...item,
+      doc: file
+        ? `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+        : null,
+      employeeId: employee.id,
+    };
+  });
+
+  await Education.bulkCreate(educationData, { transaction });
+}
+
+const experienceFiles = req.files.experience || [];
+
+if (expParsed.length > 0) {
+  const experienceData = expParsed.map((item, index) => {
+    const file = experienceFiles[index];
+
+    return {
+      ...item,
+      experienceLetter: file
+        ? `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+        : null,
+      employeeId: employee.id,
+    };
+  });
+
+  await Experience.bulkCreate(experienceData, { transaction });
+}
+
+    await transaction.commit();
+
+    res.status(201).json({ success: true, data: employee });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.updateEmpByHR = async (req,res) => {
+  const transaction = await sequelize.transaction();
+  try{
+    const {userId} = req.query;
+    const {
+      joiningDate,
+      departmentId,
+      designationId,
+      workLocationId,
+      employeeType,
+      assignSalaryStructure,
+      payrollEligibility,
+      roleId,
+      levelId,
+      salarySlabId,
+      ctc,
+      paymentMethod,
+      structure,
+    } = req.body;
+
+    if (!userId) {
+      throw new Error("userId is required");
+    }
+
+    const employee = await Employee.findOne({
+      where: {
+        userId: userId,
+      },
+      transaction,
+    })
+
+    if (!employee) {
+      throw new Error("Employee not found");
+    }
+
+    await employee.update(
+      {
+        joiningDate,
+        departmentId,
+        designationId,
+        workLocationId,
+        employeeType,
+        assignSalaryStructure,
+        payrollEligibility,
+        ctc,
+        paymentMethod,
+        roleId,
+        levelId,
+        salarySlabId,
+        onboardingStatus: "completed"
+      },
+      { transaction }
+    );
+
+    // if (structure?.earning || structure?.deduction) {
+    //   await EmployeeSalaryStructure.create(
+    //       {
+    //         employeeId: employee.id,
+    //         earnings: structure?.earning || [],
+    //         deductions: structure?.deduction || [],
+    //         ctc,
+    //         effectiveFrom: new Date(),
+    //       },
+    //       { transaction }
+    //   );
+    // }
+
+    const latestStructure = await EmployeeSalaryStructure.findOne({
+      where: { employeeId: employee.id },
+      order: [
+        ["effectiveFrom", "DESC"],
+        ["createdAt", "DESC"], 
+      ],
+      transaction,
+    });
+
+    const existingCtc = latestStructure ? Number(latestStructure.ctc) : 0;
+    const newCtc = Number(ctc || 0);
+
+    const incrementPercent = existingCtc
+      ? ((newCtc - existingCtc) / existingCtc) * 100
+      : 0;
+
+    if (structure?.earning || structure?.deduction) {
+    await EmployeeSalaryStructure.create(
+    {
+      employeeId: employee.id,
+      earnings: structure.earning || [],
+      deductions: structure.deduction || [],
+      ctc: newCtc,
+      increament: incrementPercent,
+      effectiveFrom: new Date(),
+    },
+    { transaction }
+    );
+
+  await employee.update(
+    { ctc: newCtc },
+    { transaction }
+  );
+}
+
+
+    await transaction.commit();
+    res.status(200).json({
+      success: true,
+      message: "Employee information added successfully",
+    });
+
+  }catch(error){
+    if (transaction) await transaction.rollback();
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+

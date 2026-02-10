@@ -7,6 +7,8 @@ const {
 
 exports.login = async (req, res) => {
   try {
+    // console.log("req.body",req.body);
+    
     const { accessToken, refreshToken, permissions, role } = await login({
       ...req.body,
     });
@@ -26,6 +28,8 @@ exports.login = async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
+    
     res.status(500).json({ success: false, message: error.message });
   }
 };

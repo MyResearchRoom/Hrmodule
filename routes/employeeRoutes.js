@@ -12,6 +12,9 @@ const {
   getStats,
   updateEmployee,
   getUserInfo,
+  employeeCredentialRegistration,
+  empRegistrationByEmp,
+  updateEmpByHR,
 } = require("../controllers/employeeController");
 const { hrmValidationRules } = require("../validations/hrmValidations");
 const {
@@ -40,6 +43,15 @@ router.post(
 );
 
 router.post(
+  "/employee-registration",
+  upload.fields([{ name: "profilePicture", maxCount: 1 }]),
+  validateFiles,
+  hrmValidationRules,
+  validate,
+  employeeCredentialRegistration
+);
+
+router.post(
   "/registration",
   upload.any(),
   separateFilesByField,
@@ -59,23 +71,6 @@ router.post(
   // validate,
   authenticate(["HR_MANAGER", "HR_EMPLOYEE"]),
   employeeRegistration
-);
-
-router.put(
-  "/:employeeId",
-  upload.fields([
-    { name: "aadharDoc" },
-    { name: "panDoc" },
-    { name: "profilePicture" },
-    { name: "passbookDoc" },
-    { name: "relivingLetter" },
-  ]),
-  validateFilesForUpdate,
-  // employeeUpdateValidationRules,
-  // validate,
-  authenticate(["HR_MANAGER", "HR_EMPLOYEE"]),
-  // hasPermission("employee"),
-  updateEmployee
 );
 
 router.get(
@@ -124,5 +119,33 @@ router.get(
   authenticate(["HR_MANAGER", "HR_EMPLOYEE", "EMPLOYEE"]),
   getUserInfo
 );
+
+
+//new by JB 01-03-2026
+
+router.put(
+  "/:employeeId",
+  upload.any(),
+  separateFilesByField,
+  // validateFiles,
+  authenticate(["HR_MANAGER", "HR_EMPLOYEE"]),
+  updateEmployee
+);
+
+router.post(
+  "/emp-add",
+  upload.any(),
+  separateFilesByField,
+  validateFiles,
+  authenticate(["EMPLOYEE","HR_EMPLOYEE"]),
+  empRegistrationByEmp
+);
+
+router.patch(
+  "/emp-info-addByHR",
+  authenticate(["HR_MANAGER", "HR_EMPLOYEE"]),
+  updateEmpByHR
+);
+
 
 module.exports = router;

@@ -14,6 +14,8 @@ exports.leaveRequest = async (req, res) => {
   try {
     const { calculateDaysBetween } = require("../utils/dateHelper");
     const holidaysDate = await getHolidaysDate();
+    console.log("from date",req.body.fromDate);
+    console.log("To date",req.body.toDate);
     const data = await leaveRequest({
       ...req.body,
       employeeId: req.user.id,
