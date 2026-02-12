@@ -36,7 +36,7 @@ function determineStatus(checkIn, checkOut) {
     if (!checkIn || !checkOut) return "absent";
     
     if (inTime.isBefore(officialCheckIn)) {
-        if (hoursWorked > 9){
+        if (hoursWorked > 11){
             return "over-time";
         } else if(hoursWorked < 9 && hoursWorked > 4.5){
             return "on-time"
