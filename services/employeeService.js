@@ -15,6 +15,12 @@ const {
 } = require("../models");
 const bcrypt = require("bcrypt");
 
+const {
+  decryptSensitiveData,
+  getDecryptedDocumentAsBase64,
+  decryptFileBuffer,
+} = require("../utils/cryptography");
+
 exports.hrManagerRegistration = async ({
   name,
   officialEmail,
@@ -47,6 +53,39 @@ exports.hrManagerRegistration = async ({
   }
 };
 
+exports.employeeCredentialRegistration = async ({
+  name,
+  officialEmail,
+  mobileNumber,
+  password,
+  profilePicture,
+  role,
+}) => {
+  try {
+    const existingUser = await User.findOne({
+      where: {
+        officialEmail,
+      },
+    });
+    if (existingUser) {
+      throw new Error("Email already exists");
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      name,
+      officialEmail,
+      mobileNumber,
+      password: hashedPassword,
+      role: role,
+      profilePicture,
+    });
+    await user.save(); 
+    return user;
+  } catch (error) {
+    throw error;
+  }
+};
+
 exports.employeeRegistration = async (data) => {
   const transaction = await sequelize.transaction();
   try {
@@ -66,6 +105,7 @@ exports.employeeRegistration = async (data) => {
       ...rest
     } = data;
 
+    //no need to check
     const existingUser = await User.findOne(
       {
         where: {
@@ -96,6 +136,8 @@ exports.employeeRegistration = async (data) => {
       }
     );
 
+
+    //emp
     const employee = await Employee.create(
       {
         ...rest,
@@ -107,6 +149,7 @@ exports.employeeRegistration = async (data) => {
       }
     );
 
+    //admin
     await EmployeeSalaryStructure.create(
       {
         employeeId: employee.id,
@@ -120,6 +163,8 @@ exports.employeeRegistration = async (data) => {
       }
     );
 
+
+    //emp
     const educationData = education.map((item, index) => {
       const doc = educationDoc[index];
       return {
@@ -189,6 +234,8 @@ exports.updateEmployee = async (data) => {
     SalarySlabId,
     ...rest
   } = data;
+
+  
 
   const transaction = await sequelize.transaction();
   try {
@@ -322,6 +369,7 @@ exports.getEmployee = async ({ employeeId }) => {
             "officialEmail",
             "mobileNumber",
             "profilePicture",
+            "role",
           ],
           where: {
             role: {
@@ -391,20 +439,36 @@ exports.getEmployee = async ({ employeeId }) => {
       where: {
         employeeId: employee.id,
       },
-      order: [["createdAt", "DESC"]],
+      order: [
+        ["effectiveFrom", "DESC"], 
+        ["createdAt", "DESC"],
+      ],
     });
 
+//     const latestStructure = await EmployeeSalaryStructure.findOne({
+//   where: { employeeId },
+//   order: [["effectiveFrom", "DESC"]],
+// });
+
+
     const data = employee.toJSON();
+    // const data = employee.toJSON();
 
     return {
       ...data,
       ...data.user.toJSON(),
-      id: data.userId,
+      id: data.id,
       structure: {
-        earning: salaryStructure?.earnings,
-        deduction: salaryStructure?.deductions,
+        earning: salaryStructure?.earnings || [],
+        deduction: salaryStructure?.deductions || [],
       },
-      relivingLetter: data.relivingLetter.toString("utf8"),
+      relivingLetter: data.relivingLetter,
+      aadharDoc: data.aadharDoc,
+      panDoc: data.panDoc,
+      passbookDoc: data.passbookDoc,
+      role:data.user?.role ? data.user.role : "",
+      // profilePicture:data.p.toString("utf8")
+
     };
   } catch (error) {
     throw error;
@@ -437,6 +501,7 @@ exports.getHre = async () => {
   });
 };
 
+//updated by Jb on 05-01-2026
 exports.getEmployees = async ({
   departmentId,
   status,
@@ -458,9 +523,29 @@ exports.getEmployees = async ({
     };
   }
   if (searchTerm) {
-    whereClause["$user.name$"] = {
-      [Op.like]: `%${searchTerm}%`,
-    };
+    whereClause[Op.or] = [
+      {
+        "userId": {
+          [Op.like]: `%${searchTerm}%`,
+        },
+      },
+      
+      {
+        "$user.name$": {
+          [Op.like]: `%${searchTerm}%`,
+        },
+      },
+      {
+        "$designation_.designation$": {
+          [Op.like]: `%${searchTerm}%`,
+        },
+      },
+      {
+        "$department.name$": {
+          [Op.like]: `%${searchTerm}%`,
+        },
+      },
+    ];
   }
   const employees = await Employee.findAll({
     where: whereClause,
@@ -476,6 +561,7 @@ exports.getEmployees = async ({
           "profilePicture",
           "officialEmail",
           "mobileNumber",
+          "isBlock",
         ],
       },
       {
@@ -491,17 +577,22 @@ exports.getEmployees = async ({
 
   return employees.map((employee) => ({
     id: employee.userId,
+    empid:employee.id,
     name: employee.user.name,
     role: employee.user.role,
-    status: employee.status,
-    profilePicture: employee.user.profilePicture.toString("utf8"),
-    designation: employee.designation_.designation,
-    department: employee.department.name,
-    salary: employee.ctc,
-    joiningDate: new Date(employee.joiningDate),
+    status: employee.status || "inactive",
+    isBlock: employee.user.isBlock,
+    profilePicture: employee.user.profilePicture
+      ? employee.user.profilePicture.toString("utf8")
+      : null,
+    designation: employee.designation_?.designation || null,
+    department: employee.department?.name || null,
+    salary: employee.ctc || null,
+    joiningDate: employee.joiningDate ? new Date(employee.joiningDate) : null,
     mobileNumber: employee.user.mobileNumber,
     officialEmail: employee.user.officialEmail,
   }));
+
 };
 
 exports.verifyEmployee = async ({ employeeId, status }) => {
@@ -520,7 +611,7 @@ exports.verifyEmployee = async ({ employeeId, status }) => {
 };
 
 exports.getStats = async () => {
-  const [totalCount, activeCount, inActiveCount] = await Promise.all([
+  const [totalCount, activeCount, inActiveCount,totalBlocked] = await Promise.all([
     Employee.count(),
     Employee.count({
       where: {
@@ -532,12 +623,18 @@ exports.getStats = async () => {
         status: "inactive",
       },
     }),
+    User.count({
+      where: {
+        isBlock: true,
+      },
+    }),
   ]);
 
   return {
     totalCount,
     activeCount,
     inActiveCount,
+    totalBlocked,
   };
 };
 
@@ -555,7 +652,7 @@ exports.getUserInfo = async (req, res) => {
 
     const user = await User.findOne({
       where: { id: userId },
-      attributes: ["officialEmail", "mobileNumber", "name", "profilePicture"],
+      attributes: ["officialEmail", "mobileNumber", "name", "profilePicture","role","id"],
     });
 
     if (!user) {
@@ -567,6 +664,7 @@ exports.getUserInfo = async (req, res) => {
 
     let department = null;
     let designation = null;
+    let employeeId = null;
 
     if (role === "EMPLOYEE") {
       const employee = await Employee.findOne({
@@ -586,6 +684,7 @@ exports.getUserInfo = async (req, res) => {
       });
 
       if (employee) {
+        employeeId=employee?.id || null;
         department = employee.department?.name || null;
         designation = employee.designation_?.designation || null;
       }
@@ -595,12 +694,15 @@ exports.getUserInfo = async (req, res) => {
       success: true,
       message: "User info retrieved successfully.",
       data: {
+        id:user.id,
         name: user.name,
         officialEmail: user.officialEmail,
         mobileNumber: user.mobileNumber,
+        role: user.role,
         profilePicture: user.profilePicture.toString("utf8"),
         department,
         designation,
+        employeeId,
       },
     });
   } catch (error) {
@@ -611,3 +713,83 @@ exports.getUserInfo = async (req, res) => {
     });
   }
 };
+
+// exports.updateEmpByHR = async (req, res) => {
+//   const transaction = await sequelize.transaction();
+//   try {
+//     const { userId } = req.query;
+
+//     const {
+//       joiningDate,
+//       departmentId,
+//       designationId,
+//       workLocationId,
+//       employeeType,
+//       assignSalaryStructure,
+//       payrollEligibility,
+//       roleId,
+//       levelId,
+//       salarySlabId,
+//       ctc,
+//       paymentMethod,
+//       structure,
+//     } = req.body;
+
+//     if (!userId) {
+//       throw new Error("userId is required");
+//     }
+
+//     const employee = await Employee.findOne({
+//       where: { userId },
+//       transaction,
+//     });
+
+//     if (!employee) {
+//       throw new Error("Employee not found");
+//     }
+
+//     // ✅ Update employee table
+//     await employee.update(
+//       {
+//         joiningDate,
+//         departmentId,
+//         designationId,
+//         workLocationId,
+//         employeeType,
+//         payrollEligibility,
+//         ctc,
+//         paymentMethod,
+//       },
+//       { transaction }
+//     );
+
+//     // ✅ Salary structure (only if provided)
+//     if (structure?.earning || structure?.deduction) {
+//       await EmployeeSalaryStructure.create(
+//         {
+//           employeeId: employee.id,
+//           earnings: structure?.earning || [],
+//           deductions: structure?.deduction || [],
+//           ctc,
+//           effectiveFrom: new Date(),
+//         },
+//         { transaction }
+//       );
+//     }
+
+//     await transaction.commit();
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Employee updated successfully",
+//     });
+//   } catch (error) {
+//     await transaction.rollback();
+//     console.error(error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+

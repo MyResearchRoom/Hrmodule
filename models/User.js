@@ -34,6 +34,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      isBlock:{
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue:false,
+      },
       profilePicture: {
         type: DataTypes.BLOB("long"),
         allowNull: false,

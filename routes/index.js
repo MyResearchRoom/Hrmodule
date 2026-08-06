@@ -20,6 +20,11 @@ const userPermissionRoutes = require("./userPermissionRoutes");
 const payrollRoutes = require("./payrollRoutes");
 const educationRoutes = require("./educationRoutes");
 const experienceRoutes = require("./experienceRoutes");
+const paymentSlipRoutes = require("./employeePaymentSlip");
+const auditLogsRoutes = require("./auditLogs");
+const policyRoutes = require("./policyRoutes");
+
+
 
 router.use("/test", (req, res) => res.send("<h1>This is a test API_26062025</h1>"));
 router.use("/api/auth", authRoutes);
@@ -41,5 +46,9 @@ router.use("/api/user-permissions", userPermissionRoutes);
 router.use("/api/payrolls", payrollRoutes);
 router.use("/api/education", educationRoutes);
 router.use("/api/experience", experienceRoutes);
+router.use("/api/paymentSlip", paymentSlipRoutes);
+router.use("/api/auditLogs", auditLogsRoutes);
+router.use("/api/policy", policyRoutes);
+
 
 module.exports = router;

@@ -13,9 +13,9 @@ const {
 const authenticate = require("../middlewares/authMiddleware");
 const router = express.Router();
 
-router.post("/checkIn", authenticate(["EMPLOYEE"]), checkIn);
+router.post("/checkIn", authenticate(["EMPLOYEE","HR_EMPLOYEE"]), checkIn);
 
-router.post("/checkOut", authenticate(["EMPLOYEE"]), checkOut);
+router.post("/checkOut", authenticate(["EMPLOYEE","HR_EMPLOYEE"]), checkOut);
 
 router.get("/getCheckInTime", authenticate(["EMPLOYEE"]), getCheckInTime);
 
@@ -27,7 +27,7 @@ router.get(
 
 router.get(
   "/getEmployeeAttendanceById/:id",
-  authenticate(["HR_EMPLOYEE", "HR_MANAGER"]),
+  authenticate(["HR_EMPLOYEE", "HR_MANAGER","EMPLOYEE"]),
   getEmployeeAttendanceById
 );
 

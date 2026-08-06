@@ -63,9 +63,9 @@ const fileRules = {
 
   // This is a new fields added for payroll
   profilePicture: {
-    maxSize: 1 * 1024 * 1024, // 1MB
+    maxSize: 2 * 1024 * 1024, // 1MB
     types: ["image/jpeg", "image/png"],
-    sizeMessage: "Profile picture must not exceed 1MB in size.",
+    sizeMessage: "Profile picture must not exceed 2MB in size.",
     typeMessage: "Profile picture must be in JPEG or PNG format.",
     multipleMessage: "Profile picture is required.",
     multiple: false, // Single file upload

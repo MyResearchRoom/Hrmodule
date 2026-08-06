@@ -7,23 +7,30 @@ const {
 } = require("../utils/tokenUtils");
 const { refresh_jwt_secret } = require("../config/config");
 const { getUserPermissions } = require("./userPermissionService");
+const createAuditLog = require("../utils/createAuditLogs");
 
 exports.login = async ({ officialEmail, password }) => {
   try {
+    // console.log("officialEmail",officialEmail);
+    
     const user = await User.findOne({
       where: {
         officialEmail,
       },
-      attributes: ["id", "officialEmail", "role", "password"],
+      attributes: ["id", "officialEmail", "role", "password","isBlock","name"],
     });
 
     if (!user) {
-      throw new Error("Invalid email id or password.");
+      throw new Error("Invalid email.");
+    }
+
+    if (user.isBlock) {
+      throw new Error("Your account is currently blocked. Please contact the administrator to regain access.");
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      throw new Error("Invalid email id or password.");
+      throw new Error("Invalid password.");
     }
 
     let payload = { id: user.id, role: user.role };
@@ -64,6 +71,7 @@ exports.login = async ({ officialEmail, password }) => {
       refreshToken,
       permissions,
       role: user.role,
+      user,
     };
   } catch (error) {
     throw error;
@@ -143,7 +151,7 @@ exports.changePassword = async (req, res) => {
     }
 
     const user = await User.findByPk(userId, {
-      attributes: ["id", "password"],
+      attributes: ["id", "password","name","role"],
     });
 
     if (!user) {
@@ -165,6 +173,14 @@ exports.changePassword = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
+    await createAuditLog({
+        req,
+        userId: user.id,
+        action: "CHANGE_PASSWORD",
+        description: `User "${user.name}" (${user.role}) changed their password.`,
+    });
+
+
     res.status(200).json({
       success: true,
       message: "Password changed successfully",
@@ -178,14 +194,22 @@ exports.changePassword = async (req, res) => {
 };
 
 exports.logout = async ({ refreshToken }) => {
+  let tokenRecord = null;
+
   if (refreshToken) {
-    await RefreshToken.update(
-      { isRevoked: true },
-      { where: { token: refreshToken } }
-    );
+    tokenRecord = await RefreshToken.findOne({
+      where: { token: refreshToken },
+    });
+
+    if (tokenRecord) {
+      await tokenRecord.update({
+        isRevoked: true,
+      });
+    }
   }
 
   return {
     success: true,
+    tokenRecord,
   };
 };
